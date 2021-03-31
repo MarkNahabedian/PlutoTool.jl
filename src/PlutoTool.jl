@@ -270,9 +270,9 @@ end
 
 
 # Do our thing if being run from the command line:
-if split(basename(PROGRAM_FILE), ".")[1] == "plutotool"
+if lowercase(split(basename(PROGRAM_FILE), ".")[1]) == "plutotool"
   plutotool(ARGS)
 end
 
 
-end  module PlutoTool
+end    # module PlutoTool
