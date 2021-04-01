@@ -1,6 +1,5 @@
 module PlutoTool
 
-
 using Printf: @printf
 
 import Pluto
@@ -42,6 +41,16 @@ function show(io::IO, e::BadOption)
   @printf("Bad option %s.  Valid options are %s",
           e.input,
           join(e.valid, ", "))
+end
+
+
+struct CellNotEmpty <: CommandException
+  notebook::String
+  cell_id::String  
+end
+
+function show(io::IO, e::CellNotEmpty)
+  @printf(io, "Cell %s of %s is not empty.", e.cell_id, e.notebook)
 end
 
 
@@ -168,33 +177,57 @@ ensure_command(find_empty)
 """    find notebook_path match...
 Lists the ids of any cells that contain any of the match strings.
 """
-function find(notebook_path::String, match::Vector{String}...)
+function find(notebook_path::String, match::String...)
+  found = String[]
   notebook = get_notebook(notebook_path)
   for cell in notebook.cells
     for m in match
       if occursin(m, cell.code)
+        push!(found, string(cell.cell_id))
         show_id(cell)
         break
       end
     end
   end
-  return true
+  return found
 end
 
 ensure_command(find)
 
 
-"""    delete cell_id
+"""    delete notebook cell_id
 Delete the cell with the specified id from the notebook.
 """
-function delete(path::String, cell_id::String)
+function delete(notebook_path::String, cell_id::String)
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, cell_id)
+  cell = notebook.cells[index]
+  if cell.code != ""
+    throw(CellNotEmpty(path, cell_id))
+  end
   deleteat!(notebook.cells, index)
   Pluto.save_notebook(notebook)
 end
 
 ensure_command(delete)
+
+
+"""set_contents notebook cell_id contents
+Set the contents of the specified Cell to contents.
+The cell must previously have been empty.
+"""
+function set_contents(notebook_path::String, cell_id::String, contents::String)
+  notebook = get_notebook(notebook_path)
+  index = find_cell(notebook, cell_id)
+  cell = notebook.cells[index]
+  if cell.code != ""
+    throw(CellNotEmpty(path, cell_id))
+  end
+  cell.code = contents
+  Pluto.save_notebook(notebook)  
+end
+
+ensure_command(set_contents)
 
 
 ############################################################
@@ -228,7 +261,7 @@ end
 
 
 """return the symbol that input matches, or throw BadOption."""
-function validate_option(input::String, allowed::Vector{Symbol})::Symbol
+function validate_option(input::String, allowed::Symbol...)::Symbol
   for s in allowed
     if input == string(s)
       return s
@@ -242,7 +275,7 @@ end
 ## main
 
 
-function plutotool(args::Vector{String})
+function plutotool(args::String...)
   if length(ARGS) < 1
     @printf(Base.stderr, "%s command ...\n", "plutotool")   # PROGRAM_NAME
     help()
@@ -271,7 +304,7 @@ end
 
 # Do our thing if being run from the command line:
 if lowercase(split(basename(PROGRAM_FILE), ".")[1]) == "plutotool"
-  plutotool(ARGS)
+  plutotool(ARGS...)
 end
 
 
