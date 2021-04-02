@@ -6,6 +6,32 @@ import Pluto
 
 
 ############################################################
+# Contest
+
+#=
+For testing, we want to capture output.  Julia doesn't appear to
+have a way to dynamically bind Base.stderr analogous to CommonLisp's
+*STANDARD-OUTPUT*.
+
+We define Context as a way to pass in the streams to be used for
+standard input and standard output.
+=#
+
+struct Context
+  stdout::IO
+  stderr::IO
+end
+
+function interactive_context()::Context
+  return Context(Base.stdout, Base.stderr)
+end
+
+function test_context()::Context
+  return Context(IOBuffer(write=true), IOBuffer(write=true))
+end
+
+
+############################################################
 # To facilitate testing, we define a set of exceptions which command functions
 # might throw.  All such exceptions inherit from CommandException.
 
@@ -99,9 +125,9 @@ end
 """    help
 Print documentation to standard output.
 """
-function help()
+function help(ctx::Context)
   for cmd in commands
-    @printf("%s\n", Base.doc(cmd))
+    @printf(ctx.stdout, "%s\n", Base.doc(cmd))
   end
 end
 
@@ -111,10 +137,10 @@ ensure_command(help)
 """    new_notebook path
 Create a new Pluto notebook.
 """
-function new_notebook(path::String)
+function new_notebook(ctx::Context, path::String)
   notebook = Pluto.Notebook(Pluto.Cell[Pluto.Cell("")], path)
   Pluto.save_notebook(notebook)
-  @printf("Created %s\n", notebook.path)
+  @printf(ctx.stdout, "Created %s\n", notebook.path)
   return notebook.path
 end
 
@@ -124,7 +150,7 @@ ensure_command(new_notebook)
 """    new_cell before/after notebook_path relative_to_cell_id
 Insert a new, enpty cell before or after the cell specified by existing_cell_id
 """
-function new_cell(before_after::String, notebook_path::String, relative_to_cell_id::String)
+function new_cell(ctx::Context, before_after::String, notebook_path::String, relative_to_cell_id::String)
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, relative_to_cell_id)
   rel = validate_option(before_after, :before, :after)
@@ -134,7 +160,7 @@ function new_cell(before_after::String, notebook_path::String, relative_to_cell_
   new_cell = Pluto.Cell()
   insert!(notebook.cells, index, new_cell)
   Pluto.save_notebook(notebook)
-  @printf("Inserted new cell %s\n", string(new_cell.cell_id))
+  @printf(ctx.stdout, "Inserted new cell %s\n", string(new_cell.cell_id))
   return true
 end
 
@@ -144,14 +170,14 @@ ensure_command(new_cell)
 """    find_empty notebook_path [-w]
 List the unique ids of empty cells.  With -w find_empty will include cells that contain only whitespace.
 """
-function find_empty(notebook_path::String, flag::String="")::Vector{String}
+function find_empty(ctx::Context, notebook_path::String, flag::String="")::Vector{String}
   found = String[]
   allow_whitespace = flag == "-w"
   notebook = get_notebook(notebook_path)
   for cell in notebook.cells
     if isempty(cell.code)
       push!(found, string(cell.cell_id))
-      show_id(cell)
+      show_id(ctx.stdout, cell)
       continue
     end
     if allow_whitespace
@@ -164,7 +190,7 @@ function find_empty(notebook_path::String, flag::String="")::Vector{String}
       end
       if !skip
         push!(found, string(cell.cell_id))
-        show_id(cell)
+        show_id(ctx.stdout, cell)
       end
     end
   end
@@ -177,14 +203,14 @@ ensure_command(find_empty)
 """    find notebook_path match...
 Lists the ids of any cells that contain any of the match strings.
 """
-function find(notebook_path::String, match::String...)
+function find(ctx::Context, notebook_path::String, match::String...)
   found = String[]
   notebook = get_notebook(notebook_path)
   for cell in notebook.cells
     for m in match
       if occursin(m, cell.code)
         push!(found, string(cell.cell_id))
-        show_id(cell)
+        show_id(ctx.stdout, cell)
         break
       end
     end
@@ -198,7 +224,7 @@ ensure_command(find)
 """    delete notebook cell_id
 Delete the cell with the specified id from the notebook.
 """
-function delete(notebook_path::String, cell_id::String)
+function delete(ctx::Context, notebook_path::String, cell_id::String)
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, cell_id)
   cell = notebook.cells[index]
@@ -212,11 +238,11 @@ end
 ensure_command(delete)
 
 
-"""set_contents notebook cell_id contents
+"""    set_contents notebook cell_id contents
 Set the contents of the specified Cell to contents.
 The cell must previously have been empty.
 """
-function set_contents(notebook_path::String, cell_id::String, contents::String)
+function set_contents(ctx::Context, notebook_path::String, cell_id::String, contents::String)
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, cell_id)
   cell = notebook.cells[index]
@@ -236,8 +262,8 @@ ensure_command(set_contents)
 
 """Print the unique id of the Cell to stdout.
 """
-function show_id(cell)
-  @printf("%s\n", cell.cell_id)
+function show_id(io::IO, cell)
+  @printf(io, "%s\n", cell.cell_id)
 end
 
 
@@ -275,26 +301,26 @@ end
 ## main
 
 
-function plutotool(args::String...)
+function plutotool(ctx::Context, args::String...)
   if length(ARGS) < 1
-    @printf(Base.stderr, "%s command ...\n", "plutotool")   # PROGRAM_NAME
-    help()
+    @printf(ctx.stdout, "%s command ...\n", "plutotool")   # PROGRAM_NAME
+    help(ctx)
     return
   end
   cmd_name = ARGS[1]
   cmd = lookup_command(cmd_name)
   if cmd == nothing
-    @printf(Base.stderr, "Unknown command: %s.\n", cmd_name)
-    help()
+    @printf(ctx.stderr, "Unknown command: %s.\n", cmd_name)
+    help(ctx)
     return
   end
   try
-    cmd(ARGS[2:length(ARGS)]...)
+    cmd(ctx, ARGS[2:length(ARGS)]...)
   catch e
     if isa(e, CommandException)
-      @printf(Base.stderr, "%s\n", string(e))
+      @printf(ctx.stderr, "%s\n", string(e))
     elseif isa(e, MethodError)
-      @printf(Base.stderr, "Wrong arguments:\n%s\n", Base.doc(cmd))
+      @printf(ctx.stderr, "Wrong arguments:\n%s\n", Base.doc(cmd))
     else
       rethrow(e)
     end
@@ -304,7 +330,7 @@ end
 
 # Do our thing if being run from the command line:
 if lowercase(split(basename(PROGRAM_FILE), ".")[1]) == "plutotool"
-  plutotool(ARGS...)
+  plutotool(interactive_context(), ARGS...)
 end
 
 
