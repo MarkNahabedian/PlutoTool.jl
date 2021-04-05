@@ -23,4 +23,4 @@ operations on a Pluto notebook file.
 
 ## PlutoTool Subcommands
 
-@@include[](PlutoTool_Commands.md)
+{{PlutoTool_Commands.md}}
