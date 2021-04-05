@@ -21,6 +21,8 @@ that the Pluto module had an interface that was pretty easy to figure
 out.  plutotool is a command line tool for performing some simple
 operations on a Pluto notebook file.
 
+
 ## PlutoTool Subcommands
 
-{{md PlutoTool_Commands.md}}
+A list of PlutoTool subcommands can be found [here](PlutoTool_Commands.md).
+
