@@ -147,21 +147,46 @@ end
 ensure_command(new_notebook)
 
 
+#=
+
+# This works:
+function test_add_to_new_notebook()
+  n = Pluto.Notebook([Pluto.Cell()])
+  println(length(n.cells))
+  insert!(n.cells, 1, Pluto.Cell())
+  println(length(n.cells))
+end
+
+# This works too:
+function test_add_to_sample_notebook(path::String)
+  n = PlutoTool.get_notebook(path)
+  println(length(n.cells))
+  insert!(n.cells, 1, Pluto.Cell())
+  println(length(n.cells))
+end
+
+=#
+
 """    new_cell before/after notebook_path relative_to_cell_id
-Insert a new, enpty cell before or after the cell specified by existing_cell_id
+Insert a new, enpty cell before or after the cell specified by existing_cell_id.
+The id of the new cell is returned.
 """
-function new_cell(ctx::Context, before_after::String, notebook_path::String, relative_to_cell_id::String)
+function new_cell(ctx::Context, before_after::String, notebook_path::String, relative_to_cell_id::String)::String
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, relative_to_cell_id)
   rel = validate_option(before_after, :before, :after)
+  @assert index >= 1
+  @assert index <= length(notebook.cells)
   if rel == :after
     index = index + 1
   end
-  new_cell = Pluto.Cell()
-  insert!(notebook.cells, index, new_cell)
+  cell = Pluto.Cell()
+  len = length(notebook.cells)
+  insert!(notebook.cells, index, cell)
+  @assert length(notebook.cells) == len + 1
   Pluto.save_notebook(notebook)
-  @printf(ctx.stdout, "Inserted new cell %s\n", string(new_cell.cell_id))
-  return true
+  @printf(ctx.stdout, "Inserted new cell %s\n", string(cell.cell_id))
+  return string(cell.cell_id)
 end
 
 ensure_command(new_cell)
@@ -268,7 +293,7 @@ end
 
 
 """Read and return the Pluto.Notebook from the specified file."""
-function get_notebook(path::String)
+function get_notebook(path::String)::Pluto.Notebook
   return Pluto.load_notebook(path, false)
 end
 
