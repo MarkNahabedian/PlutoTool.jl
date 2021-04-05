@@ -1,10 +1,11 @@
 
-using Test
+using Test 
 
-import PlutoTool: plutotool, commands, test_context,
+import PlutoTool: plutotool, commands, get_notebook, test_context, interactive_context,
                   CommandException, CellNotFound, BadOption, BadOption, CellNotEmpty,
                   new_notebook, new_cell, find_empty, find, delete, set_contents
 
+HELP_DOC_FILE = "../PlutoTool_Commands.md"
 
 @testset "Verify help documentation" begin
   ctx = test_context()
@@ -18,11 +19,13 @@ import PlutoTool: plutotool, commands, test_context,
   for cmd in commands
     @test occursin(string(cmd), out)
   end
+  open(f -> write(f, out),
+       HELP_DOC_FILE; truncate=true)
 end
 
 
 @testset "Build a sample notebook from scratch and test with it" begin
-  ctx = test_context()
+  ctx = interactive_context()  # test_context()
   let notebook_file = "SampleNotebook"
     rm(notebook_file, force=true)
     # Look for notebook that doesn't exist:
@@ -30,6 +33,7 @@ end
     # Create notebook:
     new_notebook(ctx, notebook_file)
     @test isfile(notebook_file)
+    @test length(get_notebook(notebook_file).cells) == 1
     # Find empty cell
     empty = find_empty(ctx, notebook_file)
     @test length(empty) == 1
@@ -40,17 +44,16 @@ end
     @test length(found) == 1
     @test found[1] == original_cell
     # Add a cell before it:
-    before = new_cell(ctx, "before", notebook_file, found[1])
-
+    before = new_cell(ctx, "before", notebook_file, original_cell)
     # Add a cell after it:
-    after = new_cell(ctx, "after", notebook_file, found[1])
-
+    after = new_cell(ctx, "after", notebook_file, original_cell)
+    @test length(get_notebook(notebook_file).cells) == 3
+    # Did they get added?
+    set_contents(ctx, notebook_file, before, "# Before.")
+    set_contents(ctx, notebook_file, after, "# After.")
     # negative find cell test
-
-    # negative find test
-
+    @test_throws CellNotFound find(ctx, notebook_file, "notfound")
     # negative enpty test
-
+    @test_throws CellNotFound find_empty(ctx, notebook_file)
   end
-
 end
