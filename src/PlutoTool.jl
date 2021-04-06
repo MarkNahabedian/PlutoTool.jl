@@ -9,9 +9,9 @@ import Pluto
 # Contest
 
 #=
-For testing, we want to capture output.  Julia doesn't appear to
-have a way to dynamically bind Base.stderr analogous to CommonLisp's
-*STANDARD-OUTPUT*.
+For testing, we want to capture output.  Julia doesn't appear to have
+a way to dynamically bind Base.stderr analogous to CommonLisp's
+dynamic binding of *STANDARD-OUTPUT*.
 
 We define Context as a way to pass in the streams to be used for
 standard input and standard output.
@@ -84,18 +84,18 @@ end
 # Commands:
 
 """Each element of commands is a function that implements a PlutoTool subcommand.
-
-The function should have a doc string appropriate to an end user of the command line
-tool.
-
-Each command should throw an exception (subtype of CommandException) if it fails.
-To facilitate testing the command should return a value appropriate to its function.
-"""
+  
+  The function should have a doc string appropriate to an end user of the command line
+  tool.
+  
+  Each command should throw an exception (subtype of CommandException) if it fails.
+  To facilitate testing the command should return a value appropriate to its function.
+  """
 commands = []
 
 
 """Add or replace cmd in commands.
-"""
+  """
 function ensure_command(cmd)
   name = Base.nameof(cmd)
   for index = 1:length(commands)
@@ -111,11 +111,11 @@ end
 
 
 """Find a command with the specified name in commands or throw CommandNotFound.
-"""
+  """
 function lookup_command(name::String)
   for cmd in commands
     if string(Base.nameof(cmd)) == name
-       return cmd
+      return cmd
     end
   end
   throw(CommandNotFound(name))
@@ -123,8 +123,8 @@ end
 
 
 """    help
-Print documentation to standard output.
-"""
+  Print documentation to standard output.
+  """
 function help(ctx::Context)
   for cmd in commands
     @printf(ctx.stdout, "%s\n", Base.doc(cmd))
@@ -135,8 +135,8 @@ ensure_command(help)
 
 
 """    new_notebook path
-Create a new Pluto notebook.
-"""
+  Create a new Pluto notebook.
+  """
 function new_notebook(ctx::Context, path::String)
   notebook = Pluto.Notebook(Pluto.Cell[Pluto.Cell("")], path)
   Pluto.save_notebook(notebook)
@@ -167,10 +167,11 @@ end
 
 =#
 
+
 """    new_cell before/after notebook_path relative_to_cell_id
-Insert a new, enpty cell before or after the cell specified by existing_cell_id.
-The id of the new cell is returned.
-"""
+  Insert a new, enpty cell before or after the cell specified by existing_cell_id.
+  The id of the new cell is returned.
+  """
 function new_cell(ctx::Context, before_after::String, notebook_path::String, relative_to_cell_id::String)::String
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, relative_to_cell_id)
@@ -193,8 +194,8 @@ ensure_command(new_cell)
 
 
 """    find_empty notebook_path [-w]
-List the unique ids of empty cells.  With -w find_empty will include cells that contain only whitespace.
-"""
+  List the unique ids of empty cells.  With -w find_empty will include cells that contain only whitespace.
+  """
 function find_empty(ctx::Context, notebook_path::String, flag::String="")::Vector{String}
   found = String[]
   allow_whitespace = flag == "-w"
@@ -226,8 +227,8 @@ ensure_command(find_empty)
 
 
 """    find notebook_path match...
-Lists the ids of any cells that contain any of the match strings.
-"""
+  Lists the ids of any cells that contain any of the match strings.
+  """
 function find(ctx::Context, notebook_path::String, match::String...)
   found = String[]
   notebook = get_notebook(notebook_path)
@@ -247,8 +248,8 @@ ensure_command(find)
 
 
 """    delete notebook cell_id
-Delete the cell with the specified id from the notebook.
-"""
+  Delete the cell with the specified id from the notebook.
+  """
 function delete(ctx::Context, notebook_path::String, cell_id::String)
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, cell_id)
@@ -264,9 +265,9 @@ ensure_command(delete)
 
 
 """    set_contents notebook cell_id contents
-Set the contents of the specified Cell to contents.
-The cell must previously have been empty.
-"""
+  Set the contents of the specified Cell to contents.
+  The cell must previously have been empty.
+  """
 function set_contents(ctx::Context, notebook_path::String, cell_id::String, contents::String)
   notebook = get_notebook(notebook_path)
   index = find_cell(notebook, cell_id)
@@ -286,7 +287,7 @@ ensure_command(set_contents)
 
 
 """Print the unique id of the Cell to stdout.
-"""
+  """
 function show_id(io::IO, cell)
   @printf(io, "%s\n", cell.cell_id)
 end
@@ -299,7 +300,7 @@ end
 
 
 """find_cell looks for a Cell with the specified id in the Notebook and returns that cells index.
-Throws CellNotFound if not found."""
+  Throws CellNotFound if not found."""
 function find_cell(notebook::Pluto.Notebook, id::String)::Int
   for index = 1:length(notebook.cells)
     cell = notebook.cells[index]
