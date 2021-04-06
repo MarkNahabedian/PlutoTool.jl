@@ -1,8 +1,8 @@
 
 using Test 
 
-import PlutoTool: plutotool, commands, get_notebook, test_context, interactive_context,
-                  CommandException, CellNotFound, BadOption, BadOption, CellNotEmpty,
+import PlutoTool: plutotool, commands, lookup_command, get_notebook, test_context, interactive_context,
+                  CommandException, CommandNotFound, BadOption, BadOption, CellNotEmpty,
                   new_notebook, new_cell, find_empty, find, delete, set_contents
 
 HELP_DOC_FILE = "../PlutoTool_Commands.md"
@@ -25,7 +25,9 @@ end
 
 
 @testset "Build a sample notebook from scratch and test with it" begin
-  ctx = interactive_context()  # test_context()
+  ctx = test_context()
+  # Missing command detection:
+  @test_throws CommandNotFound lookup_command("no-such-command")
   let notebook_file = "SampleNotebook"
     rm(notebook_file, force=true)
     # Look for notebook that doesn't exist:
@@ -52,8 +54,15 @@ end
     set_contents(ctx, notebook_file, before, "# Before.")
     set_contents(ctx, notebook_file, after, "# After.")
     # negative find cell test
-    @test_throws CellNotFound find(ctx, notebook_file, "notfound")
+    found = find(ctx, notebook_file, "notfound")
+    @test length(found) == 0
     # negative enpty test
-    @test_throws CellNotFound find_empty(ctx, notebook_file)
+    @test length(find_empty(ctx, notebook_file)) == 0
+    # Deletion:
+    @test length(find_empty(ctx, notebook_file)) == 0
+    delete_me = new_cell(ctx, "after", notebook_file, original_cell)
+    @test length(find_empty(ctx, notebook_file)) == 1    
+    delete(ctx, notebook_file, delete_me)
+    @test length(find_empty(ctx, notebook_file)) == 0
   end
 end
