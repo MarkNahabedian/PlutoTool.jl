@@ -147,44 +147,22 @@ end
 ensure_command(new_notebook)
 
 
-#=
-
-# This works:
-function test_add_to_new_notebook()
-  n = Pluto.Notebook([Pluto.Cell()])
-  println(length(n.cells))
-  insert!(n.cells, 1, Pluto.Cell())
-  println(length(n.cells))
-end
-
-# This works too:
-function test_add_to_sample_notebook(path::String)
-  n = PlutoTool.get_notebook(path)
-  println(length(n.cells))
-  insert!(n.cells, 1, Pluto.Cell())
-  println(length(n.cells))
-end
-
-=#
-
-
 """    new_cell before/after notebook_path relative_to_cell_id
   Insert a new, enpty cell before or after the cell specified by existing_cell_id.
   The id of the new cell is returned.
   """
 function new_cell(ctx::Context, before_after::String, notebook_path::String, relative_to_cell_id::String)::String
   notebook = get_notebook(notebook_path)
-  index = find_cell(notebook, relative_to_cell_id)
   rel = validate_option(before_after, :before, :after)
+  index = find_cell(notebook, relative_to_cell_id)
   @assert index >= 1
   @assert index <= length(notebook.cells)
   if rel == :after
     index = index + 1
   end
   cell = Pluto.Cell()
-  len = length(notebook.cells)
-  insert!(notebook.cells, index, cell)
-  @assert length(notebook.cells) == len + 1
+  notebook.cells_dict[cell.cell_id] = cell
+  insert!(notebook.cell_order, index, cell.cell_id)
   Pluto.save_notebook(notebook)
   @printf(ctx.stdout, "Inserted new cell %s\n", string(cell.cell_id))
   return string(cell.cell_id)
@@ -257,7 +235,8 @@ function delete(ctx::Context, notebook_path::String, cell_id::String)
   if cell.code != ""
     throw(CellNotEmpty(path, cell_id))
   end
-  deleteat!(notebook.cells, index)
+  deleteat!(notebook.cell_order, index)
+  delete!(notebook.cells_dict, cell.cell_id)
   Pluto.save_notebook(notebook)
 end
 
