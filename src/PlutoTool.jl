@@ -4,7 +4,6 @@ using Printf: @printf
 
 import Pluto
 
-
 ############################################################
 # Contest
 
@@ -274,7 +273,11 @@ end
 
 """Read and return the Pluto.Notebook from the specified file."""
 function get_notebook(path::String)::Pluto.Notebook
-  return Pluto.load_notebook(path, false)
+  return Pluto.load_notebook(path)
+end
+
+function get_notebook_readonly(path::String)::Pluto.Notebook
+  return Pluto.load_notebook(path; disable_writing_notebook_files=true)
 end
 
 
@@ -320,12 +323,13 @@ function plutotool(ctx::Context, args::String...)
     return
   end
   try
-    cmd(ctx, ARGS[2:length(ARGS)]...)
+    cmd(ctx, ARGS[2:end]...)
   catch e
     if isa(e, CommandException)
       @printf(ctx.stderr, "%s\n", string(e))
     elseif isa(e, MethodError)
       @printf(ctx.stderr, "Wrong arguments:\n%s\n", Base.doc(cmd))
+      showerror(stx.stderr, e)
     else
       rethrow(e)
     end
