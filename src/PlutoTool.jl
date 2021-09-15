@@ -4,6 +4,8 @@ using Printf: @printf
 
 import Pluto
 
+# include("burst.jl")  # Still under development
+
 ############################################################
 # Contest
 
@@ -258,6 +260,19 @@ function set_contents(ctx::Context, notebook_path::String, cell_id::String, cont
 end
 
 ensure_command(set_contents)
+
+#=
+"""
+    burst notebook_file
+The burst command is under development.
+"""
+function burst(ctx::Context, notebook_path::String)
+  notebook = get_notebook_readonly(notebook_path)
+  extract_doc(notebook, ctx.stdout)
+end
+
+ensure_command(burst)
+=#
 
 
 ############################################################
