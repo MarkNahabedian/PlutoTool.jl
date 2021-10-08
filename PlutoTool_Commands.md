@@ -41,3 +41,9 @@ set_contents notebook cell_id contents
 
 Set the contents of the specified Cell to contents. The cell must previously have been empty.
 
+```
+set_workspace notebook path_to_workspace_dir
+```
+
+The directory identified by path*to*workspace_dir should include   a Project.toml and a Manifest.toml file.  The contents of those   files will be included in the notebook for the Pluto package manager   to find.
+

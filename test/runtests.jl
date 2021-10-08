@@ -3,7 +3,7 @@ using Test
 
 import PlutoTool: plutotool, commands, lookup_command, get_notebook, test_context, interactive_context,
                   CommandException, CommandNotFound, BadOption, BadOption, CellNotEmpty,
-                  new_notebook, new_cell, find_empty, find, delete, set_contents
+                  new_notebook, new_cell, find_empty, find, delete, set_contents, set_workspace
 
 HELP_DOC_FILE = "../PlutoTool_Commands.md"
 
@@ -65,4 +65,15 @@ end
     delete(ctx, notebook_file, delete_me)
     @test length(find_empty(ctx, notebook_file)) == 0
   end
+end
+
+
+@testset "test set_workspace" begin
+    ctx = test_context()
+    let notebook_file = "NotebookWithWorkspace"
+        rm(notebook_file, force=true)
+        # Create notebook:
+        new_notebook(ctx, notebook_file)
+        set_workspace(ctx, notebook_file, "..")
+    end    
 end

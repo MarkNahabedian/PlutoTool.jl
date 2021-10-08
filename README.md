@@ -15,11 +15,13 @@ Run with no arguments for help.
 I was working through an open courseware class where the lecture notes
 were provided as interactive Pluto notebooks.  I tried to add a new
 cell to my local copy of the notebook to work on one of the exercises,
-but the Pluto keyboard gesture for that wasn't working.  I saw that
-the structure of the notebook file was pretty simple and then observed
-that the Pluto module had an interface that was pretty easy to figure
-out.  plutotool is a command line tool for performing some simple
-operations on a Pluto notebook file.
+but the Pluto keyboard gesture for that wasn't working.  The UI
+buttons were invisible because I use a dark theme that the icon
+library that Pluto uses is clueless about. I saw that the structure of
+the notebook file was pretty simple and then observed that the Pluto
+module had an interface that was pretty easy to figure out.  plutotool
+is a command line tool for performing some simple operations on a
+Pluto notebook file.
 
 
 ## PlutoTool Subcommands

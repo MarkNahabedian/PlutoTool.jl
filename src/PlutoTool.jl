@@ -1,6 +1,7 @@
 module PlutoTool
 
 using Printf: @printf
+using Pluto.PkgCompat
 
 import Pluto
 
@@ -43,7 +44,7 @@ struct CommandNotFound <: CommandException
   command::String
 end
 
-function show(io::IO, e::CommandNotFound)
+function Base.showerror(io::IO, e::CommandNotFound)
   write(io, "command not found: ")
   write(io, e.command)
 end
@@ -54,7 +55,7 @@ struct CellNotFound <: CommandException
   cell_id::String
 end
 
-function show(io::IO, e::CellNotFound)
+function Base.showerror(io::IO, e::CellNotFound)
   @printf("Notebook %s has no cell with id %s", e.notebook, e.cell_id)
 end
 
@@ -64,7 +65,7 @@ struct BadOption <: CommandException
   valid::Vector{String}
 end
 
-function show(io::IO, e::BadOption)
+function Base.showerror(io::IO, e::BadOption)
   @printf("Bad option %s.  Valid options are %s",
           e.input,
           join(e.valid, ", "))
@@ -76,8 +77,19 @@ struct CellNotEmpty <: CommandException
   cell_id::String  
 end
 
-function show(io::IO, e::CellNotEmpty)
+function Base.showerror(io::IO, e::CellNotEmpty)
   @printf(io, "Cell %s of %s is not empty.", e.cell_id, e.notebook)
+end
+
+
+struct NotAWorkspace <: CommandException
+    notebook::String
+    dir::String
+    why::String
+end
+
+function Base.showerror(io::IO, e::NotAWorkspace)
+  println(io, "$(e.dir) is not a workspace: $(e.why).")
 end
 
 
@@ -256,10 +268,40 @@ function set_contents(ctx::Context, notebook_path::String, cell_id::String, cont
     throw(CellNotEmpty(path, cell_id))
   end
   cell.code = contents
-  Pluto.save_notebook(notebook)  
+  Pluto.save_notebook(notebook)
 end
 
 ensure_command(set_contents)
+
+
+"""
+    set_workspace notebook path_to_workspace_dir
+The directory identified by path_to_workspace_dir should include
+a Project.toml and a Manifest.toml file.  The contents of those
+files will be included in the notebook for the Pluto package manager
+to find.
+"""
+function set_workspace(ctx::Context, notebook_path::String, path_to_workspace_dir::String)
+    notebook = get_notebook(notebook_path)
+    if !isdir(path_to_workspace_dir)
+        throw(NotAWorkspace(notebook_path, path_to_workspace_dir,
+                            "Directory does not exist."))
+    end
+    projectfile = joinpath(path_to_workspace_dir, "Project.toml")
+    manifestfile = joinpath(path_to_workspace_dir, "Manifest.toml")
+    if !isfile(projectfile)
+        throw(NotAWorkspace(notebook_path, path_to_workspace_dir,
+                            "Np Project.toml file"))
+    end
+    if !isfile(manifestfile)
+        throw(NotAWorkspace(notebook_path, path_to_workspace_dir,
+                            "Np Manifest.toml file"))
+    end              
+    notebook.nbpkg_ctx = PkgCompat.load_ctx(path_to_workspace_dir)
+    Pluto.save_notebook(notebook)
+end
+
+ensure_command(set_workspace)
 
 #=
 """
