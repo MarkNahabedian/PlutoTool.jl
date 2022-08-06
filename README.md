@@ -1,3 +1,9 @@
+<a href="https://github.com/MarkNahabedian/PlutoTool.jl/actions/workflows/ci.yml">
+  <img
+    src="https://github.com/MarkNahabedian/PlutoTool.jl/actions/workflows/ci.yml/badge.svg"
+    alt="Build Status" />
+</a>
+
 # PlutoTool
 
 PlutoTool is a command line utility for doing simple manipulations on
