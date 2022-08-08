@@ -3,6 +3,17 @@
     src="https://github.com/MarkNahabedian/PlutoTool.jl/actions/workflows/ci.yml/badge.svg"
     alt="Build Status" />
 </a>
+<a href="https://codecov.io/gh/MarkNahabedian/PlutoTool.jl">
+  <img
+    src="https://codecov.io/gh/MarkNahabedian/PlutoTool.jl/branch/master/graph/badge.svg"
+    alt="Test Coverage" />
+</a>
+<a href="https://marknahabedian.github.io/PlutoTool.jl/">
+  <img
+    src="https://img.shields.io/badge/docs-stable-blue.svg"
+    alt="Docs Stable" />
+</a>
+
 
 # PlutoTool
 
