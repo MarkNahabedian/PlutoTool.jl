@@ -1,4 +1,3 @@
-plutotool command ...
 ```
 help
 ```
@@ -15,7 +14,7 @@ Create a new Pluto notebook.
 new_cell before/after notebook_path relative_to_cell_id
 ```
 
-Insert a new, enpty cell before or after the cell specified by existing*cell*id. The id of the new cell is returned.
+Insert a new, empty cell before or after the cell specified by existing*cell*id. The id of the new cell is returned.
 
 ```
 find_empty notebook_path [-w]
@@ -45,5 +44,5 @@ Set the contents of the specified Cell to contents. The cell must previously hav
 set_workspace notebook path_to_workspace_dir
 ```
 
-The directory identified by path*to*workspace_dir should include   a Project.toml and a Manifest.toml file.  The contents of those   files will be included in the notebook for the Pluto package manager   to find.
+The directory identified by `path_to_workspace_dir` should include a Project.toml and a Manifest.toml file.  The contents of those files will be included in the notebook for the Pluto package manager to find.
 

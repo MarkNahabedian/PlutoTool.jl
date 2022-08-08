@@ -28,7 +28,7 @@ end
   ctx = test_context()
   # Missing command detection:
   @test_throws CommandNotFound lookup_command("no-such-command")
-  let notebook_file = "SampleNotebook"
+  let notebook_file = "SampleNotebook.jl"
     rm(notebook_file, force=true)
     # Look for notebook that doesn't exist:
     @test_throws SystemError find_empty(ctx, notebook_file)
@@ -49,8 +49,9 @@ end
     before = new_cell(ctx, "before", notebook_file, original_cell)
     # Add a cell after it:
     after = new_cell(ctx, "after", notebook_file, original_cell)
-    @test length(get_notebook(notebook_file).cells) == 3
     # Did they get added?
+    @test length(get_notebook(notebook_file).cells) == 3
+    # Give them some content:
     set_contents(ctx, notebook_file, before, "# Before.")
     set_contents(ctx, notebook_file, after, "# After.")
     # negative find cell test

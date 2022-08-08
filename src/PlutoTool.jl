@@ -7,8 +7,10 @@ import Pluto
 
 # include("burst.jl")  # Still under development
 
+export plutotool, interactive_context, test_context
+
 ############################################################
-# Contest
+# Context
 
 #=
 For testing, we want to capture output.  Julia doesn't appear to have
@@ -96,13 +98,16 @@ end
 ############################################################
 # Commands:
 
-"""Each element of commands is a function that implements a PlutoTool subcommand.
+"""
+    commands
+
+Each element of commands is a function that implements a PlutoTool subcommand.
   
-  The function should have a doc string appropriate to an end user of the command line
-  tool.
+The function should have a doc string appropriate to an end user of the command line
+tool.
   
-  Each command should throw an exception (subtype of CommandException) if it fails.
-  To facilitate testing the command should return a value appropriate to its function.
+Each command should throw an exception (subtype of CommandException) if it fails.
+To facilitate testing the command should return a value appropriate to its function.
   """
 commands = []
 
@@ -161,7 +166,7 @@ ensure_command(new_notebook)
 
 
 """    new_cell before/after notebook_path relative_to_cell_id
-  Insert a new, enpty cell before or after the cell specified by existing_cell_id.
+  Insert a new, empty cell before or after the cell specified by existing_cell_id.
   The id of the new cell is returned.
   """
 function new_cell(ctx::Context, before_after::String, notebook_path::String, relative_to_cell_id::String)::String
@@ -175,7 +180,13 @@ function new_cell(ctx::Context, before_after::String, notebook_path::String, rel
   end
   cell = Pluto.Cell()
   notebook.cells_dict[cell.cell_id] = cell
-  insert!(notebook.cell_order, index, cell.cell_id)
+  # @info "adding $(cell.cell_id) $before_after"
+  notebook.cell_order = insert!(notebook.cell_order, index, cell.cell_id)
+  # At some point between Pluto v16 and v19, saviing the notebook
+  # became dependent on the topology, such that the new cell's uuid
+  # would appear in the user cell ordering of the notebook, but the
+  # cell itself did not appear in the notebook file.
+  notebook.topology = Pluto.updated_topology(notebook.topology, notebook, [cell])
   Pluto.save_notebook(notebook)
   @printf(ctx.stdout, "Inserted new cell %s\n", string(cell.cell_id))
   return string(cell.cell_id)
@@ -217,8 +228,9 @@ end
 ensure_command(find_empty)
 
 
-"""    find notebook_path match...
-  Lists the ids of any cells that contain any of the match strings.
+"""
+    find notebook_path match...
+Lists the ids of any cells that contain any of the match strings.
   """
 function find(ctx::Context, notebook_path::String, match::String...)
   found = String[]
@@ -250,15 +262,17 @@ function delete(ctx::Context, notebook_path::String, cell_id::String)
   end
   deleteat!(notebook.cell_order, index)
   delete!(notebook.cells_dict, cell.cell_id)
+  notebook.topology = Pluto.updated_topology(notebook.topology, notebook, [cell])
   Pluto.save_notebook(notebook)
 end
 
 ensure_command(delete)
 
 
-"""    set_contents notebook cell_id contents
-  Set the contents of the specified Cell to contents.
-  The cell must previously have been empty.
+"""
+    set_contents notebook cell_id contents
+Set the contents of the specified Cell to contents.
+The cell must previously have been empty.
   """
 function set_contents(ctx::Context, notebook_path::String, cell_id::String, contents::String)
   notebook = get_notebook(notebook_path)
@@ -276,7 +290,7 @@ ensure_command(set_contents)
 
 """
     set_workspace notebook path_to_workspace_dir
-The directory identified by path_to_workspace_dir should include
+The directory identified by `path_to_workspace_dir` should include
 a Project.toml and a Manifest.toml file.  The contents of those
 files will be included in the notebook for the Pluto package manager
 to find.
@@ -297,11 +311,14 @@ function set_workspace(ctx::Context, notebook_path::String, path_to_workspace_di
         throw(NotAWorkspace(notebook_path, path_to_workspace_dir,
                             "Np Manifest.toml file"))
     end              
+    ### Instead, use Pluto.activate_notebook_environment
     notebook.nbpkg_ctx = PkgCompat.load_ctx(path_to_workspace_dir)
     Pluto.save_notebook(notebook)
 end
 
 ensure_command(set_workspace)
+
+### update_workspace
 
 #=
 """
@@ -367,12 +384,12 @@ end
 
 
 function plutotool(ctx::Context, args::String...)
-  if length(ARGS) < 1
+  if length(args) < 1
     @printf(ctx.stdout, "%s command ...\n", "plutotool")   # PROGRAM_NAME
     help(ctx)
     return
   end
-  cmd_name = ARGS[1]
+  cmd_name = args[1]
   cmd = lookup_command(cmd_name)
   if cmd == nothing
     @printf(ctx.stderr, "Unknown command: %s.\n", cmd_name)
@@ -380,7 +397,7 @@ function plutotool(ctx::Context, args::String...)
     return
   end
   try
-    cmd(ctx, ARGS[2:end]...)
+    cmd(ctx, args[2:end]...)
   catch e
     if isa(e, CommandException)
       @printf(ctx.stderr, "%s\n", string(e))
@@ -399,5 +416,15 @@ if lowercase(split(basename(PROGRAM_FILE), ".")[1]) == "plutotool"
   plutotool(interactive_context(), ARGS...)
 end
 
+function julia_main()::Cint
+  status = 0
+  try
+    plutotool(interactive_context(), ARGS...)
+  catch e
+    println(stderr, e)
+    status = -1
+  end
+  return status
+end
 
 end    # module PlutoTool
