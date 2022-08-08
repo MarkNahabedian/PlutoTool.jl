@@ -1,3 +1,5 @@
+using Pkg
+Pkg.add("Documenter")
 
 using Documenter
 using PlutoTool
